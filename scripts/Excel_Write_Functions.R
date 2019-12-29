@@ -242,7 +242,7 @@ createBioSigOverlapSpreadSheet<-function(
   dg1.ds = "Pax6 Genes",           # short description for contrast C1 (dg1)
   dg2.ds = "Runx1 Genes",          # short description for contrast C1 (dg2)
   template="Comparisons.xlsx",     # Name of spreadsheet template file
-  descPageName="Data Description", # Name of sheet to write summary tables
+  descPageName="Data Description", # Name of sheet to write summary  tables
   wb = NULL,                       # Optionally pass a workbook object instead.
   pref = "FuncTest" ,              # Prefix for output file.
   fname=NULL                       # Manually specify an output file name
@@ -357,7 +357,9 @@ createDEGSpreadSheet<-function(
   	"FDR", 
   	"Avg1", 
   	"Avg2"
-  )
+  ),
+  nm_cols=c("Change", "Avg"),      # Columns being formated numerically
+  sc_cols=c("p_value", "FDR")      # Columns with scientific notation formatting
 ){
   gr1<-paste(unique(dg1$Group_1),"Avg", sep="_")
   gr2<-paste(unique(dg1$Group_2),"Avg", sep="_")
@@ -406,7 +408,8 @@ createDEGSpreadSheet<-function(
   for(i in names(tables)){
     writeSheet(
       wb, tables[[i]], i,
-      nm_cols=c("Change", "Avg")
+      nm_cols=nm_cols,
+      sc_cols=sc_cols
     )
   }
   

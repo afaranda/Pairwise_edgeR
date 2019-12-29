@@ -143,7 +143,6 @@ for( c in names(contrasts)){
   degSet$Group_1 <-contrasts[[c]][1]
   degSet$Group_2 <-contrasts[[c]][2]
   
-  
   createDEGSpreadSheet(
     C1 = c,                          # Name of the contrast
     dg1 = degSet,                       # Data Set for the contrast
@@ -153,7 +152,7 @@ for( c in names(contrasts)){
     dg1.Avg1 = "Avg1",               # Column in dg1 with average value for Group_1
     dg1.Avg2 = "Avg2",               # Column in dg1 with average value for Group_2
     dg1.me = 2,                      # Min. expression for dg1.bioFun
-    dg1.x = 23,                      # row number, corner of dg1 Summary table
+    dg1.x = 23,                      # row number, co0rner of dg1 Summary table
     dg1.y = 2,                       # col number, corner of dg1 Summary table
     dg1.ds = "Pax6 Genes",           # short description for contrast C1 (dg1)
     template = "scripts/deg_template.xlsx",
@@ -171,7 +170,8 @@ for( c in names(contrasts)){
       "FDR", 
       "Avg1", 
       "Avg2"
-    )
+    ),
+    sc_cols=c("PValue", "FDR")
   )
 }
   
