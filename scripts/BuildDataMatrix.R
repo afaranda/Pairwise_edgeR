@@ -90,7 +90,8 @@ hc_getFileTable <-function(
 	filename="HtSeq_GeneCountFiles.csv"
 ){
 	if(filename %in% list.files(wd)){
-		ft<-read.csv(filename, stringsAsFactors = F)
+	  fn = paste(wd, filename, sep="/")
+		ft<-read.csv(fn, stringsAsFactors = F)
 	} 
 	else{
 		ft<-data.frame(
@@ -110,7 +111,8 @@ hc_getFileTable <-function(
 			 )
 			 ft<-rbind(ft, x)
 		}
-		write.csv(ft, filename, row.names=F)
+		fn = paste(wd, filename, sep="/")
+		write.csv(ft, fn, row.names=F)
 	}
 	return(ft)
 }

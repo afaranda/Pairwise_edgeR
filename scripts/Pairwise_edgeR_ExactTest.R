@@ -16,8 +16,9 @@ data_dir<-paste(wd,'data',sep='/')
 # After generating the file table, update it with 
 # Experimental Grouping information in excel/oocalc/emacs
 ft<-hc_getFileTable(
+  wd = data_dir,
   dirList=c(data_dir),
-  filename = "data/HtSeq_GeneCountFiles.csv"
+  filename = "HtSeq_GeneCountFiles.csv"
 )
 
 # Assemble Data Sets
