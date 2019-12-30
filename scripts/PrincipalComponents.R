@@ -1,11 +1,11 @@
 ################################################################################
-# File: PrincipalComponents.R  												   #
+# File: PrincipalComponents.R                                                  #
 # Purpose: Given a matrix of gene expression values, compute principal         #
 #          components. Plot components and return corresponding data tables.   #
 #          Also implement MDS methods from edgeR                               #
 #                                                                              #
-# Created: April 30, 2019 													   #
-# Author: Adam Faranda														   #
+# Created: April 30, 2019                                                      #
+# Author: Adam Faranda                                                         #
 ################################################################################
 library(ggfortify)
 
@@ -41,10 +41,5 @@ plotPrinComp<-function(df, ft, idCol=1, groupCol=3, transpose=T, legendTitle="")
     
 }
 
-
-
-
-
-?autoplot
 
 

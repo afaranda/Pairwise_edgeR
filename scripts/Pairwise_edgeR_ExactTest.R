@@ -10,15 +10,14 @@ options(echo=T)
 # setwd('/Users/afaranda/Desktop/LEC_Time_Series')
 wd<-getwd()
 results<-paste(wd,'results',sep='/')
-#data_dir<-paste(wd,'data',sep='/')
-data_dir <-'~/Documents/LEC_Time_Series_HTSeq_Counts'
+data_dir<-paste(wd,'data',sep='/')
 
 # Generate table of data files / sample information
 # After generating the file table, update it with 
 # Experimental Grouping information in excel/oocalc/emacs
 ft<-hc_getFileTable(
   dirList=c(data_dir),
-  filename = "HtSeq_GeneCountFiles.csv"
+  filename = "data/HtSeq_GeneCountFiles.csv"
 )
 
 # Assemble Data Sets
@@ -27,7 +26,7 @@ ft<-hc_identifierConsistency(ds, ft, idCol=1)
 
 # Import "Gene Length" Annotation to add to dgelist
 gt<-read.table(
-  '~/Desktop/gene_coding_lengths.txt', 
+  'data/gene_coding_lengths.txt', 
   header=T, quote="", sep="\t", 
   stringsAsFactors = F
 )
@@ -158,7 +157,7 @@ for( c in names(contrasts)){
     template = "scripts/deg_template.xlsx",
     descPageName="Data Description", # Name of sheet to write summary tables
     wb = NULL,                       # Optionally pass a workbook object instead.
-    pref = "Pax6" ,                  # Prefix for output file.
+    pref = "" ,                      # Prefix for output file.
     fname=NULL,                      # Manually specify an output file name
     use_lfc = FALSE,                 # Whether to use logFC or Fold_Change
     cols=c(
@@ -173,5 +172,7 @@ for( c in names(contrasts)){
     ),
     sc_cols=c("PValue", "FDR")
   )
+  fn<-paste(wd,"/results/",c,"_","DEG_Table.tsv", sep="")
+  write.table(degSet, file=fn, sep="\t", quote=F, row.names = F )
 }
   
