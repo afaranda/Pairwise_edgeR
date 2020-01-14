@@ -1,5 +1,5 @@
 ################################################################################
-# File: Pax6Epi_Multi_Write_Excel.R                                            #
+# File: Excel_Write_Functions.R                                                #
 # Author: Adam Faranda                                                         #
 # Created: June 28, 2019                                                       #
 # Purpose: Functionds that write tables to spreadsheets                        #
@@ -244,14 +244,16 @@ createBioSigOverlapSpreadSheet<-function(
   template="Comparisons.xlsx",     # Name of spreadsheet template file
   descPageName="Data Description", # Name of sheet to write summary  tables
   wb = NULL,                       # Optionally pass a workbook object instead.
-  pref = "FuncTest" ,              # Prefix for output file.
-  fname=NULL                       # Manually specify an output file name
+  pref = "FuncTest",               # Prefix for output file.
+  fname=NULL,                      # Manually specify an output file name
+  idc = 'MGI.symbol'               # Column in dg1 and dg2 with unique gene id
 ){
   
-  allResults<-query(dg1, dg2)
+  allResults<-query(dg1, dg2, id_col = idc)
   bioResults<-query(
     dg1.bioFun(dg1, minExp = dg1.me),
-    dg2.bioFun(dg2, minExp = dg2.me)
+    dg2.bioFun(dg2, minExp = dg2.me),
+    id_col = idc
   )
   
   print(nrow(allResults))
@@ -259,13 +261,15 @@ createBioSigOverlapSpreadSheet<-function(
   
   stat.tables<-subsetTables(
     Contrast_1 = C1, Contrast_2 = C2,
-    allResults, annot = an, unlog=T, descname = T
+    allResults, annot = an, unlog=T, descname = T,
+    pvl = "PValue"
   )
   stat.inx<-tabulateOverlap(stat.tables, rename = T)
   
   bio.tables<-subsetTables(
     Contrast_1 = C1, Contrast_2 = C2,
-    bioResults, annot = an, unlog=T, descname = T, stat = F
+    bioResults, annot = an, unlog=T, descname = T, stat = F,
+    pvl = "PValue"
   )
   bio.inx<-tabulateOverlap(bio.tables, rename = T)
   
@@ -377,10 +381,10 @@ createDEGSpreadSheet<-function(
   # Set up list
   descTables = list(
     C1=list(
-      Table=degSummary(dg1, fdr=dg1.fdr, minExp=dg1.me, Avg1=gr1, Avg2=gr2), 
+      Table=degSummary(dg1, fdr=dg1.fdr, minExp=dg1.me, Avg1=gr1, Avg2=gr2),
       corner=c(dg1.x, dg1.y), cn=T, rn=F, tc=F
     )
-   )
+  )
   names(descTables)[grep("C1", names(descTables))]<-paste(dg1.ds, C1)
   
   
@@ -427,13 +431,136 @@ createDEGSpreadSheet<-function(
 }
 
 
+createMethodComparisonSpreadsheet<-function(
+  C1 = "AvsB",  C2 = "CvsD",       # Names of ach contrast
+  dg1 = dg1, dg2 = dg2,            # DEG sets to compare (Full Sets)
+  dg1.bioFun = bioSigRNASeq,       # Biological significance filter for dg1
+  dg1.fdr = "FDR",                 # Statistic used to filter genes for dg1
+  dg1.me = 2,                      # Min. expression for dg1.bioFun
+  dg1.x = 39,                      # row number, corner of dg1 Summary table
+  dg1.y = 2,                       # col number, corner of dg1 Summary table
+  dg2.bioFun = bioSigRNASeq,       # Biological significance filter for dg2
+  dg2.fdr = "FDR",                 # Statistic used to filter genes for dg2
+  dg2.me = 2,                      # Min. expression for dg2.bioFun
+  dg2.x = 44,                      # row number, corner of dg2 Summary table
+  dg2.y = 2,                       # col number, corner of dg2 Summary table
+  vns.x = 50,                      # row number, corner of ven intersect
+  vns.y = 2,                       # col number, corner of stat. sig intersect
+  vnb.x = 56,                      # row number, corner of ven intersect
+  vnb.y = 2,                       # col number, corner of stat. sig intersect  
+  ssg.x = 62,                      # row number, corner of stat. sig intersect
+  ssg.y = 2,                       # col number, corner of stat. sig intersect
+  bsg.x = 66,                      # row number, corner of bio. sig intersect
+  bsg.y = 2,                       # col number, corner of bio. sig intersect
+  dg1.ds = "Pax6 Genes",           # short description for contrast C1 (dg1)
+  dg2.ds = "Runx1 Genes",          # short description for contrast C1 (dg2)
+  template="Comparisons.xlsx",     # Name of spreadsheet template file
+  descPageName="Data Description", # Name of sheet to write summary  tables
+  wb = NULL,                       # Optionally pass a workbook object instead.
+  pref = "FuncTest" ,              # Prefix for output file.
+  fname=NULL,                      # Manually specify an output file name
+  idc = 'MGI.symbol',              # Column in dg1 and dg2 with unique gene id
+  annot = NULL
+){
+  
+  allResults<-query(dg1, dg2, id_col = idc)
+  bioResults<-query(
+    dg1.bioFun(dg1, minExp = dg1.me, maxStat = 2, minLfc = -1),
+    dg2.bioFun(dg2, minExp = dg2.me, maxStat = 2, minLfc = -1),
+    id_col = idc
+  )
+  
+  print(nrow(allResults))
+  print(nrow(bioResults))
+  
+  stat.tables<-compareHits(
+    Contrast_1 = C1, Contrast_2 = C2,
+    allResults, annot = annot, unlog=F, descname = T,
+    pvl = "PValue", id_col = idc
+  )
+  stat.ven<-vennIntersections(
+    allResults, id_col = 'SYMBOL', Contrast_1 = C1, Contrast_2 = C2,
+    minDiff = 0, minAvg = 0
+  )
+  stat.inx<-tabulateOverlap(stat.tables, rename = T)
 
+  bio.tables<-compareHits(
+    Contrast_1 = C1, Contrast_2 = C2,
+    allResults, annot = annot, unlog=F, descname = T, stat = F,
+    pvl = "PValue", id_col = idc
+  )
+  biol.ven<-vennIntersections(
+    bioResults, id_col = 'SYMBOL', Contrast_1 = C1, Contrast_2 = C2,
+    minDiff = dg1.me, minAvg = dg1.me
+  )
+  bio.inx<-tabulateOverlap(bio.tables, rename = T)
 
+  print(stat.inx)
+  print(bio.inx)
 
+  # Set up list
+  descTables = list(
+    C1=list(
+      Table=degSummary(dg1, fdr=dg1.fdr, minExp=dg1.me), corner=c(dg1.x, dg1.y), cn=T, rn=F, tc=F
+    ),
+    C2=list(
+      Table=degSummary(dg2, fdr=dg2.fdr, minExp=dg2.me), corner=c(dg2.x, dg2.y), cn=T, rn=F, tc=F
+    ),
+    `Statistically Siginificant Overlap`=list(
+      Table=stat.ven, corner=c(vns.x, vns.y), cn=T, rn=F, tc=F
+    ),
+    `Biologically Siginificant Overlap`=list(
+      Table=biol.ven, corner=c(vnb.x, vnb.y), cn=T, rn=F, tc=F
+    ),
+    `Statistically Significant Directional Intersection`=list(
+      Table=stat.inx, corner=c(ssg.x, ssg.y), cn=T, rn=T, tc=T
+    ),
+    `Biologically Significant Directional Intersection`=list(
+      Table=bio.inx, corner=c(bsg.x, bsg.y), cn=T, rn=T, tc=T
+    )
+  )
+  names(descTables)[grep("C1", names(descTables))]<-paste(dg1.ds, C1)
+  names(descTables)[grep("C2", names(descTables))]<-paste(dg2.ds, C2)
 
-
-
-
-
-
-
+  # Write Description Tables -- see script "Excel_Write_Functions.R"
+  wb<-writeDescTables(
+    template=template,          # Name of template file
+    name = descPageName,        # Name of sheet with descriptive tables
+    descTables = descTables
+  )
+  
+  # Delete "Contrasts tab from directional subsets
+  stat.tables["Contrasts"]<-NULL
+  bio.tables["Contrasts"]<-NULL
+  print(names(stat.tables[[2]]))
+  # Add statistically significant directional subsets to workbook object
+  for(i in names(stat.tables)){
+    writeSheet(
+      wb, stat.tables[[i]], i,
+      nm_cols=c("logFC","Change", "Avg"),
+      sc_cols=c("PValue", "FDR"),
+      tx_cols=c("SYMBOL", "description")
+    )
+  }
+  
+  # Add biologically significant directional subsets to workbook object
+  for(i in names(bio.tables)){
+    writeSheet(
+      wb, bio.tables[[i]], i,
+      nm_cols=c("logFC","Change", "Avg"),
+      sc_cols=c("PValue", "FDR"),
+      tx_cols=c("SYMBOL", "description")
+    )
+  }
+  # Save workbooks to file  
+  # fn<-paste(names(pairwise)[pairwise %in% comparisons[[c]]], collapse="_")
+  if(is.null(fname)){
+    fn<-paste(C1, C2, sep="_")
+    fn<-paste(pref,fn, "DEG_Comparison.xlsx", sep="_")
+    print(fn)
+  } else {
+    fn<-fname
+  }	
+  saveWorkbook(wb, file=fn, overwrite = T)
+  wb
+}

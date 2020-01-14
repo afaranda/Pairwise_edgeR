@@ -40,25 +40,23 @@ dfRename<-function(df, name_pairs){
   df
 }
 
-dfSubname<-function(df, name_pairs){
+dfSubname<-function(df, name_pairs, pf="^", po="$"){
   if (!is.null(names(name_pairs))){
     for(np in names(name_pairs)){
-      r<-paste(name_pairs[np], "$",sep="")
+      r<-paste(pf,name_pairs[np], po,sep="")
       names(df)<-gsub(r, np, names(df))
     }
   }
   df
 }
 
-
-
 # Query for Pairwise overlap between two Deglists -- assumes both tables
 # have the same column headers, and that "MGI.symbol" is a unique id in both
 # lists
 query<-function(
-  dg1=ss_master, dg2=ss_master, id_col="MGI.symbol"
+  dg1=ss_master, dg2=ss_master, id_col="MGI.symbol",
+  cols=c("logFC", "PValue", "FDR", "Group_1", "Group_2", "Avg1", "Avg2")
 ){
- cols<-c("logFC", "p_value", "FDR", "Group_1", "Group_2", "Avg1", "Avg2")
  dg1<-dg1[,c(id_col, cols)]
  dg2<-dg2[,c(id_col, cols)]
  
@@ -136,10 +134,10 @@ subsetTables<-function(
 ){
   # Standardize column headers
   cols<-c(lfc=lfc, pvl=pvl, fdr=fdr, g1=g1, g2=g2, a1=a1, a2=a2)
-  df<-dfSubname(df, cols)
+  df<-dfSubname(df, cols, pf="")
   
   prf<-c(dg1=dg1, dg2=dg2)
-  df<-dfSubname(df, prf)
+  df<-dfSubname(df, prf, po="")
   
   if(unlog){
     df$dg1.lfc<-ifelse(df$dg1.lfc >= 0, 2^df$dg1.lfc, -1/2^df$dg1.lfc)
@@ -257,6 +255,241 @@ subsetTables<-function(
   )
   tables
 }
+
+################################################################
+
+# Extract directional subsets of statistically significant genes
+compareHits<-function(
+  df,                       # Data frame with a joined pair of results
+  id_col="MGI.symbol",      # Unique Identifier for this gene
+  Contrast_1 = "LE",        # Name of the first contrast in df
+  Contrast_2 = "PCO",       # Name of the second contrast in df
+  dg1="dg1",                # Prefix for contrast 1
+  dg2="dg2",                # Prefix for contrast 2
+  lfc="logFC",              # Column with log 2 fold change values
+  pvl="p_value",            # Column with p value for pairwise test
+  fdr="FDR",                # Column with FDR values
+  g1 = "Group_1",           # Column with Group_1 label
+  g2 = "Group_2",           # Column with Group_2 label
+  a1 = "Avg1",              # Column with average values for Group_1
+  a2 = "Avg2",              # Column with average values for Group_2
+  stat = T,                 # Whether to use 'Stat' or 'Bio' naming scheme
+  unlog = T,                # Whether to report absolute or log2 fold changes
+  descname = F,             # Use original, or descriptive attribute names
+  annot = NULL,             # Optionally provide table (keyed on ID)
+  dropGroup = T,            # Drop or keep group label columns
+  lfcmin = 1,               # Fold Change threshold
+  minDiff = 2,              # Minimum difference for biological significance
+  minAvg  = 2               # Minimum Abundance for biologuical significance
+){
+  print(length(stat))
+
+  # Standardize column headers
+  cols<-c(lfc=lfc, pvl=pvl, fdr=fdr, g1=g1, g2=g2, a1=a1, a2=a2)
+  df<-dfSubname(df, cols, pf="")
+  
+  prf<-c(dg1=dg1, dg2=dg2)
+  df<-dfSubname(df, prf, po="")
+  
+  if(unlog){
+    df$dg1.lfc<-ifelse(df$dg1.lfc >= 0, 2^df$dg1.lfc, -1/2^df$dg1.lfc)
+    df$dg2.lfc<-ifelse(df$dg2.lfc >= 0, 2^df$dg2.lfc, -1/2^df$dg2.lfc)
+  }
+  if(!is.null(annot)){
+    print(head(annot))
+    if(any(grepl(id_col, names(annot)))){
+      print("found ID")
+      if(length(unique(annot[,id_col])) == nrow(annot)){
+        acols<-setdiff(names(annot), id_col)
+        dcols<-setdiff(names(df), id_col)
+        df<-left_join(df, annot, by=id_col)
+        df<-data.frame(df, stringsAsFactors = F)
+        df<-df[, c(id_col, acols, dcols)]
+      } else {
+        print("Length Mismatch")
+      }
+    }
+  }
+  # Subset results
+  print(length(stat))
+  if (stat){
+    tables<-list(
+      `Stat Sig Intersection`= df %>%
+        filter(abs(dg1.lfc) > lfcmin & dg1.fdr < 0.05)%>%
+        filter(abs(dg2.lfc) > lfcmin & dg2.fdr < 0.05),
+      `SS Dn C1 Up C2` = df %>% 
+        filter(
+          dg1.lfc < 0-lfcmin & dg1.fdr < 0.05, 
+          dg2.lfc > lfcmin & dg2.fdr < 0.05),
+      
+      `SS Dn C1 Dn C2` = df %>% 
+        filter(
+          dg1.lfc < 0-lfcmin & dg1.fdr < 0.05, 
+          dg2.lfc < 0-lfcmin & dg2.fdr < 0.05),
+      
+      `SS Up C1 Up C2` =df %>% 
+        filter(dg1.lfc > lfcmin & dg1.fdr < 0.05, 
+               dg2.lfc > lfcmin & dg2.fdr < 0.05),
+      
+      `SS Up C1 Dn C2` = df %>% 
+        filter(dg1.lfc > lfcmin & dg1.fdr < 0.05, 
+               dg2.lfc < 0-lfcmin & dg2.fdr < 0.05),
+      
+      `SS Up C1 Only`  = df %>% 
+        filter(dg1.lfc > lfcmin & dg1.fdr < 0.05, 
+               !(abs(dg2.lfc) > lfcmin & dg2.fdr < 0.05)),
+      
+      `SS Dn C1 Only`  = df %>% 
+        filter(dg1.lfc < 0-lfcmin & dg1.fdr < 0.05, 
+               !(abs(dg2.lfc) > lfcmin & dg2.fdr < 0.05)),
+      
+      `SS Up C2 Only`  = df %>% 
+        filter(!(abs(dg1.lfc) > lfcmin & dg1.fdr < 0.05), 
+               dg2.lfc > lfcmin & dg2.fdr < 0.05),
+      
+      `SS Dn C2 Only`  = df %>% 
+        filter(!(abs(dg1.lfc) > lfcmin & dg1.fdr < 0.05), 
+               dg2.lfc < 0-lfcmin & dg2.fdr < 0.05)
+    )
+    
+    # Use if the data tables submitted via df are biologically significant
+  } else {
+    dg <- df
+    df <- df %>% 
+      filter(abs(dg1.a1 - dg1.a2) > minDiff) %>%
+      filter(dg1.a1 > minAvg | dg1.a2 > minAvg) %>%
+      filter(abs(dg2.a1 - dg2.a2) > minDiff) %>%
+      filter(dg2.a1 > minAvg | dg2.a2 > minAvg)
+    
+    tables<-list(
+      # `Bio Sig Intersection`=df,
+      # `BS Dn C1 Up C2`= df %>% filter(dg1.lfc < 0, dg2.lfc > 0 ),
+      # `BS Dn C1 Dn C2`= df %>% filter(dg1.lfc < 0, dg2.lfc < 0 ),
+      # `BS Up C1 Up C2`= df %>% filter(dg1.lfc > 0, dg2.lfc > 0 ),
+      # `BS Up C1 Dn C2`= df %>% filter(dg1.lfc > 0, dg2.lfc < 0 )
+      
+      
+      `Bio Sig Intersection`=df %>%
+        filter(abs(dg1.lfc) > lfcmin & dg1.fdr < 0.05)%>%
+        filter(abs(dg2.lfc) > lfcmin & dg2.fdr < 0.05),
+      `BS Dn C1 Up C2` = df %>% 
+        filter(
+          dg1.lfc < 0-lfcmin & dg1.fdr < 0.05, 
+          dg2.lfc > lfcmin & dg2.fdr < 0.05),
+      
+      `BS Dn C1 Dn C2` = df %>% 
+        filter(
+          dg1.lfc < 0-lfcmin & dg1.fdr < 0.05, 
+          dg2.lfc < 0-lfcmin & dg2.fdr < 0.05),
+      
+      `BS Up C1 Up C2` =df %>% 
+        filter(dg1.lfc > lfcmin & dg1.fdr < 0.05, 
+               dg2.lfc > lfcmin & dg2.fdr < 0.05),
+      
+      `BS Up C1 Dn C2` = df %>% 
+        filter(dg1.lfc > lfcmin & dg1.fdr < 0.05, 
+               dg2.lfc < 0-lfcmin & dg2.fdr < 0.05),
+      
+      `BS Up C1 Only`  = df %>% 
+        filter(dg1.lfc > lfcmin & dg1.fdr < 0.05, 
+               !(abs(dg2.lfc) > lfcmin & dg2.fdr < 0.05)),
+      
+      `BS Dn C1 Only`  = df %>% 
+        filter(dg1.lfc < 0-lfcmin & dg1.fdr < 0.05, 
+               !(abs(dg2.lfc) > lfcmin & dg2.fdr < 0.05)),
+      
+      `BS Up C2 Only`  = df %>% 
+        filter(!(abs(dg1.lfc) > lfcmin & dg1.fdr < 0.05), 
+               dg2.lfc > lfcmin & dg2.fdr < 0.05),
+      
+      `BS Dn C2 Only`  = df %>% 
+        filter(!(abs(dg1.lfc) > lfcmin & dg1.fdr < 0.05), 
+               dg2.lfc < 0-lfcmin & dg2.fdr < 0.05),
+      `All Observations` = dg
+    )
+  }
+  
+  # Rename Contrasts
+  names(tables)<-gsub("C1", Contrast_1, names(tables))
+  names(tables)<-gsub("C2", Contrast_2, names(tables))
+  if(descname){
+    cols<-c(
+      dg1.g1 = paste(Contrast_1, df$dg1.g1[1], sep="_"),
+      dg1.g2 = paste(Contrast_1, df$dg1.g2[1], sep="_"),
+      dg2.g1 = paste(Contrast_2, df$dg2.g1[1], sep="_"),
+      dg2.g2 = paste(Contrast_2, df$dg2.g2[1], sep="_"),
+      dg1.a1 = paste(Contrast_1, df$dg1.g1[1], "Avg", sep="_"),
+      dg1.a2 = paste(Contrast_1, df$dg1.g2[1], "Avg", sep="_"),
+      dg2.a1 = paste(Contrast_2, df$dg2.g1[1], "Avg", sep="_"),
+      dg2.a2 = paste(Contrast_2, df$dg2.g2[1], "Avg", sep="_"),
+      dg1.lfc = ifelse(
+        unlog, paste(Contrast_1, "Fold_Change",sep="_"),
+        paste(Contrast_1, lfc,sep="_")
+      ),
+      dg2.lfc=ifelse(
+        unlog, paste(Contrast_2, "Fold_Change",sep="_"),
+        paste(Contrast_2, lfc,sep="_")
+      ),
+      dg1.pvl = paste(Contrast_1, pvl,sep="_"),
+      dg2.pvl = paste(Contrast_2, pvl,sep="_"),
+      dg1.fdr = paste(Contrast_1, fdr,sep="_"),
+      dg2.fdr = paste(Contrast_2, fdr,sep="_")
+    )
+    
+    for (t in names(tables)){
+      if(dropGroup){
+        sloc<-names(cols)
+        names(sloc)<-cols
+        keep<-setdiff(
+          names(tables[[t]]), 
+          sloc[c(grep("\\.g1$", sloc), grep("\\.g2$", sloc))]
+        )
+        sloc<-sloc[-c(grep("\\.g1$", sloc), grep("\\.g2$", sloc)) ]
+        print(keep)
+        tables[[t]]<-tables[[t]][, keep]
+        tables[[t]]<-dfSubname(tables[[t]], sloc)
+        
+      } else {
+        sloc<-names(cols)
+        names(sloc)<-cols
+        tables[[t]]<-dfSubname(tables[[t]], sloc)
+      }
+    }
+    
+  } else {
+    for(t in names(tables)){
+      if(dropGroup){
+        sloc<-names(cols)
+        frp<-names(prf)
+        names(sloc)<-cols
+        names(frp)<-prf
+        
+        drop<-c(
+          grep("\\.g1$", names(tables[[t]])), 
+          grep("\\.g2$", names(tables[[t]]))
+        )
+        keep<-names(tables[[t]])[-drop]
+        print(keep)
+        sloc<-sloc[-c(grep("g1$", sloc), grep("g2$", sloc))]
+        tables[[t]]<-dfSubname(tables[[t]], sloc)
+        tables[[t]]<-dfSubname(tables[[t]], frp)
+        
+      } else {
+        sloc<-names(cols)
+        frp<-names(prf)
+        names(sloc)<-cols
+        names(frp)<-prf
+        tables[[t]]<-dfSubname(tables[[t]], sloc)
+        tables[[t]]<-dfSubname(tables[[t]], frp)
+      }
+    }
+  }
+  tables<-append(
+    tables, list(Contrasts=c(Contrast_1=Contrast_1, Contrast_2=Contrast_2))
+  )
+  tables
+}
+################################################################
 
 # Tabulate Directional Intersections between the two data sets
 # Recieves set of tables generated by "subsetTables()" returns a
@@ -443,9 +676,59 @@ uniqueTotalExp<-function(
   return (data.frame(df, stringsAsFactors=F))
 }
 
+# vennIntersections: Given a joined pair of DEG tables, this function
+# tabulates the DEGs detected in both tables, or only in one table
+# with total, and directional partitions. It returns a four column
+# data frame. 
 
-
-
-
-
-
+vennIntersections<-function(
+  df,                       # Data frame with a joined pair of results
+  id_col="MGI.symbol",      # Unique Identifier for this gene
+  Contrast_1 = "LE",        # Name of the first contrast in df
+  Contrast_2 = "PCO",       # Name of the second contrast in df
+  dg1="dg1",                # Prefix for contrast 1
+  dg2="dg2",                # Prefix for contrast 2
+  lfc="logFC",              # Column with log 2 fold change values
+  pvl="p_value",            # Column with p value for pairwise test
+  fdr="FDR",                # Column with FDR values
+  g1 = "Group_1",           # Column with Group_1 label
+  g2 = "Group_2",           # Column with Group_2 label
+  a1 = "Avg1",              # Column with average values for Group_1
+  a2 = "Avg2",              # Column with average values for Group_2
+  stat = T,                 # Whether to use 'Stat' or 'Bio' naming scheme
+  lfcmin = 1,               # Fold Change threshold
+  minDiff = 2,              # Minimum difference for biological significance
+  minAvg  = 2               # Minimum Abundance for biologuical significance
+){
+  # Standardize column headers
+  cols<-c(lfc=lfc, pvl=pvl, fdr=fdr, g1=g1, g2=g2, a1=a1, a2=a2)
+  df<-dfSubname(df, cols, pf="")
+  
+  prf<-c(dg1=dg1, dg2=dg2)
+  df<-dfSubname(df, prf, po="")
+  
+  df <- df %>% 
+    filter(abs(dg1.a1 - dg1.a2) > minDiff) %>%
+    filter(dg1.a1 > minAvg | dg1.a2 > minAvg) %>%
+    filter(abs(dg2.a1 - dg2.a2) > minDiff) %>%
+    filter(dg2.a1 > minAvg | dg2.a2 > minAvg)
+  
+  Venns<-data.frame(
+    Partition = c('Total', 'Increased', 'Decreased'),
+    C1 = c(
+      nrow(df %>% filter((abs(dg1.lfc) > lfcmin & dg1.fdr < 0.05) & !(abs(dg2.lfc) > lfcmin & dg2.fdr < 0.05))),
+      nrow(df %>% filter((dg1.lfc > lfcmin & dg1.fdr < 0.05) & !(abs(dg2.lfc) > lfcmin & dg2.fdr < 0.05))),
+      nrow(df %>% filter((dg1.lfc < 0-lfcmin & dg1.fdr < 0.05) & !(abs(dg2.lfc) > lfcmin & dg2.fdr < 0.05)))),
+    Both = c(
+      nrow(df %>% filter((abs(dg1.lfc) > lfcmin & dg1.fdr < 0.05) & (abs(dg2.lfc) > lfcmin & dg2.fdr < 0.05))), 
+      nrow(df %>% filter((dg1.lfc > lfcmin & dg1.fdr < 0.05) & (dg2.lfc > lfcmin & dg2.fdr < 0.05))),
+      nrow(df %>% filter((dg1.lfc < 0-lfcmin & dg1.fdr < 0.05) & (dg2.lfc < 0-lfcmin & dg2.fdr < 0.05)))),
+    C2 = c(
+      nrow(df %>% filter(!(abs(dg1.lfc) > lfcmin & dg1.fdr < 0.05) & (abs(dg2.lfc) > lfcmin & dg2.fdr < 0.05))),
+      nrow(df %>% filter(!(abs(dg1.lfc) > lfcmin & dg1.fdr < 0.05) & (dg2.lfc > lfcmin & dg2.fdr < 0.05))),
+      nrow(df %>% filter(!(abs(dg1.lfc) > lfcmin & dg1.fdr < 0.05) & (dg2.lfc < 0-lfcmin & dg2.fdr < 0.05))))
+  )
+  names(Venns)[grep('C1', names(Venns))]<-Contrast_1
+  names(Venns)[grep('C2', names(Venns))]<-Contrast_2
+  return(Venns)
+}
