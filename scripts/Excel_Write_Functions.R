@@ -36,7 +36,11 @@ writeSheet<-function(
     "Agreement"
   ),
   nm_cols=c("logFC", "Avg1", "Avg2"), # Columns that contain numeric data
-  sc_cols=c("p_value", "FDR")         # Columns requiring scientific notation 
+  sc_cols=c(                          # Columns requiring scientific notation 
+    "PValue",
+    "p_value", 
+    "FDR"
+  )
 ){
   if(!(name %in% wb$sheet_names)){
     addWorksheet(wb, sheetName = name)
@@ -246,7 +250,8 @@ createBioSigOverlapSpreadSheet<-function(
   wb = NULL,                       # Optionally pass a workbook object instead.
   pref = "FuncTest",               # Prefix for output file.
   fname=NULL,                      # Manually specify an output file name
-  idc = 'MGI.symbol'               # Column in dg1 and dg2 with unique gene id
+  idc = 'MGI.symbol',              # Column in dg1 and dg2 with unique gene id
+  annot = an                       # Annotation Table
 ){
   
   allResults<-query(dg1, dg2, id_col = idc)
@@ -258,17 +263,18 @@ createBioSigOverlapSpreadSheet<-function(
   
   print(nrow(allResults))
   print(nrow(bioResults))
+  print(head(annot))
   
   stat.tables<-subsetTables(
-    Contrast_1 = C1, Contrast_2 = C2,
-    allResults, annot = an, unlog=T, descname = T,
+    Contrast_1 = C1, Contrast_2 = C2, id_col=idc,
+    allResults, annot = annot, unlog=T, descname = T,
     pvl = "PValue"
   )
   stat.inx<-tabulateOverlap(stat.tables, rename = T)
   
   bio.tables<-subsetTables(
-    Contrast_1 = C1, Contrast_2 = C2,
-    bioResults, annot = an, unlog=T, descname = T, stat = F,
+    Contrast_1 = C1, Contrast_2 = C2, id_col=idc,
+    bioResults, annot = annot, unlog=T, descname = T, stat = F,
     pvl = "PValue"
   )
   bio.inx<-tabulateOverlap(bio.tables, rename = T)
@@ -341,14 +347,20 @@ createDEGSpreadSheet<-function(
   dg1.bioFun = bioSigRNASeq,       # Biological significance filter for dg1
   dg1.fdr = "FDR",                 # Statistic used to filter genes for dg1
   dg1.lfc = "logFC",               # Column in dg1 with log Fold Changes
-  dg1.Avg1 = "Avg1",               # Column in dg1 with average value for Group_1
-  dg1.Avg2 = "Avg2",               # Column in dg1 with average value for Group_2
+  dg1.Avg1 = "Avg1",               # Column in dg1 with mean value for Group_1
+  dg1.Avg2 = "Avg2",               # Column in dg1 with mean value for Group_2
   dg1.me = 2,                      # Min. expression for dg1.bioFun
   dg1.x = 23,                      # row number, corner of dg1 Summary table
   dg1.y = 2,                       # col number, corner of dg1 Summary table
   dg1.ds = "Pax6 Genes",           # short description for contrast C1 (dg1)
   template="Contrast.xlsx",        # Name of spreadsheet template file
   descPageName="Data Description", # Name of sheet to write summary tables
+  tableNames=c(                    # Names to use for standard tables
+    'All Genes', 
+    'Statistically Significant',
+    'Biologically Significant'
+  ),
+  extraTables=NULL,                # Additional tables (list of `Name`=Table)
   wb = NULL,                       # Optionally pass a workbook object instead.
   pref = "" ,                      # Prefix for output file.
   fname=NULL,                      # Manually specify an output file name
@@ -362,8 +374,8 @@ createDEGSpreadSheet<-function(
   	"Avg1", 
   	"Avg2"
   ),
-  nm_cols=c("Change", "Avg"),      # Columns being formated numerically
-  sc_cols=c("p_value", "FDR")      # Columns with scientific notation formatting
+  nm_cols=c("Change", "Avg"),      # Columns formated numerically
+  sc_cols=c("p_value", "FDR")      # Columns formatted with scientific notation
 ){
   gr1<-paste(unique(dg1$Group_1),"Avg", sep="_")
   gr2<-paste(unique(dg1$Group_2),"Avg", sep="_")
@@ -381,7 +393,10 @@ createDEGSpreadSheet<-function(
   # Set up list
   descTables = list(
     C1=list(
-      Table=degSummary(dg1, fdr=dg1.fdr, minExp=dg1.me, Avg1=gr1, Avg2=gr2),
+      Table=degSummary(
+        dg1, fdr=dg1.fdr, 
+        minExp=dg1.me, Avg1=gr1, Avg2=gr2
+      ),
       corner=c(dg1.x, dg1.y), cn=T, rn=F, tc=F
     )
   )
@@ -396,11 +411,13 @@ createDEGSpreadSheet<-function(
     descTables = descTables
   )
     
-  tables = list(
-  	`All Genes` = dg1,
-    `Statistically Significant` = allResults,
-    `Biologically Significant` = bioResults
-  )
+  tables = list(dg1, allResults, bioResults)
+  if (length(tableNames) != 3){
+    print('tableNames parameter muts specify exactly three names')
+    return(NULL)
+  }
+  names(tables) <-tableNames
+  
   # If needed, Convert logFC to Fold_Change
   if(!use_lfc){
   	for(i in names(tables)){
@@ -408,6 +425,12 @@ createDEGSpreadSheet<-function(
   		names(tables[[i]])[grep(dg1.lfc, names(tables[[i]]))]<-"Fold_Change"
   	}
   }
+  
+  # Add any Extra tables passed to the function
+  if (! is.null(names(extraTables))){
+    tables=append(extraTables, tables)
+  }
+  
   
   for(i in names(tables)){
     writeSheet(
