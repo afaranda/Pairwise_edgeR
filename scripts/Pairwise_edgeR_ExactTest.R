@@ -24,6 +24,7 @@ ft<-hc_getFileTable(
 # Assemble Data Sets
 ds<-hc_loadFiles(ft)
 ft<-hc_identifierConsistency(ds, ft, idCol=1)
+row.names(ft)<-ft$sample
 
 # Import "Gene Length" Annotation to add to dgelist
 gt<-read.table(
@@ -107,29 +108,33 @@ for( c in names(contrasts)){
       rep(1, length(gr1)), 
       rep(2, length(gr2))
     ), 
-    labels=c(contrasts[[c]][1], contrasts[[c]][2])
+    labels=c(contrasts[[c]][1], contrasts[[c]][2]),
+    levels=c(1,2)
   )
+  names(grp)<-c(gr1, gr2)
   
-  # Get subset of samples for this contrast
+  # Get subset of samples for this contrast and fill design matrix
   dge<-DGEList(
     master[,c(gr1, gr2)],
-    genes = gt[row.names(df),],
-    group = grp
+    genes = gt[row.names(df),]
   )
+  dge$samples$group<-grp[c(gr1, gr2)]
+  design<-model.matrix( ~group, dge$samples)
+  colnames(design)<-gsub('grp', '', colnames(design))
+  
   # Filter DGEList: Remove genes where fewer than two samples have a cpm > 2
   # Reccommended by EdgeR manual
-  keep <- rowSums(cpm(dge) > 1) >= 2
-  dge.filter <-dge[keep, ]
-  dge.filter$samples$lib.size <- colSums(dge.filter$counts) # Fix library size after filtering
+  keep <- filterByExpr(dge, design)
+  dge.filter <-dge[keep,,keep.lib.sizes=T]
   
   # Calculate Normalization factors and dispersion estimates
   dge.filter <-calcNormFactors(dge.filter)
-  dge.filter <-estimateCommonDisp(dge.filter, verbose=T)
-  dge.filter <-estimateTagwiseDisp(dge.filter)
+  dge.filter <-estimateDisp(dge.filter, design, robust=T, verbose=T)
   
   # Calculate Differential Expression
-  et<-exactTest(dge.filter )
-  degSet<-topTags(et, n=Inf)@.Data[[1]]
+  fit<-glmQLFit(dge, design, robust=T)
+  qlf<-glmQLFTest(fit, coef = 2)
+  degSet<-topTags(qlf, n=Inf)@.Data[[1]]
   degSet$gene_id<-row.names(degSet) # Necessary for downstream dplyr processing
   
   degSet['Avg1']<-apply(
