@@ -1,13 +1,13 @@
 library(edgeR)
 library('AnnotationHub')
 library(dplyr)
-source('scripts/BuildDataMatrix.R')
-source('scripts/Excel_Write_Functions.R')
-source('scripts/Overlap_Comparison_Functions.R')
 options(echo=T)
 
 # Enter Working Directory and Load Raw Data
-# setwd('/Users/afaranda/Desktop/LEC_Time_Series')
+setwd('/Users/afaranda/Desktop/LEC_Time_Series')
+source('scripts/BuildDataMatrix.R')
+source('scripts/Excel_Write_Functions.R')
+source('scripts/Overlap_Comparison_Functions.R')
 wd<-getwd()
 results<-paste(wd,'results',sep='/')
 data_dir<-paste(wd,'data',sep='/')
@@ -18,7 +18,7 @@ data_dir<-paste(wd,'data',sep='/')
 ft<-hc_getFileTable(
   wd = data_dir,
   dirList=c(data_dir),
-  filename = "HtSeq_GeneCountFiles.csv"
+  filename = "HTSeq_GeneCountFiles.csv"
 )
 
 # Assemble Data Sets
@@ -58,7 +58,7 @@ df=hc_buildDataFrame(ds, ft, return_matrix = F)
 master<-DGEList( 
   counts = df,
   genes = gt[row.names(df),],
-  samples = ft,
+  samples = ft[colnames(df),],
 )
 
 # Define Groups As a list of the form: "Group1=c('S1', 'S2', 'S3')
@@ -70,11 +70,22 @@ groups=list(
   Treatment=c('6_S4', '7_S5', '8_S6')
 )
 
-# A list of named contrasts; each element points to a vector with
+# Add Average FPKMs to gene table in master DGEList
+for(g in names(groups)){
+  cn<-paste(g, "Avg", sep="_")
+  s<-groups[[g]]
+  master$genes[cn] <- apply(rpkm(master)[,s], 1, mean)   
+}
+
+# Define A list of named contrasts; each element points to a vector with
 # a pair of group labels. Positive fold changes will be associated
 # with the second group listed. 
 contrasts=list(
   Treatment_vs_Control=c('Control', 'Treatment')
+)
+
+contrast_descriptions<-list(
+  Treatment_vs_Control="Pairwise Contrast between two conditions"
 )
 
 # Function Calculates fold change from logFC
@@ -114,71 +125,65 @@ for( c in names(contrasts)){
   names(grp)<-c(gr1, gr2)
   
   # Get subset of samples for this contrast and fill design matrix
-  dge<-DGEList(
-    master[,c(gr1, gr2)],
-    genes = gt[row.names(df),]
-  )
+  dge<-master[,c(gr1, gr2)]
+
   dge$samples$group<-grp[c(gr1, gr2)]
   design<-model.matrix( ~group, dge$samples)
-  colnames(design)<-gsub('grp', '', colnames(design))
+  colnames(design)<-gsub('group', '', colnames(design))
   
   # Filter DGEList: Remove genes where fewer than two samples have a cpm > 2
   # Reccommended by EdgeR manual
   keep <- filterByExpr(dge, design)
-  dge.filter <-dge[keep,,keep.lib.sizes=T]
+  dge.filter <-dge[keep,,keep.lib.sizes=F]
   
   # Calculate Normalization factors and dispersion estimates
   dge.filter <-calcNormFactors(dge.filter)
   dge.filter <-estimateDisp(dge.filter, design, robust=T, verbose=T)
   
   # Calculate Differential Expression
-  fit<-glmQLFit(dge, design, robust=T)
+  fit<-glmQLFit(dge.filter, design, robust=T)
   qlf<-glmQLFTest(fit, coef = 2)
   degSet<-topTags(qlf, n=Inf)@.Data[[1]]
   degSet$gene_id<-row.names(degSet) # Necessary for downstream dplyr processing
   
-  degSet['Avg1']<-apply(
-    rpkm(dge.filter)[,groups[[contrasts[[c]][1]]]], 1, mean
-  )[degSet$gene_id]
-  
-  degSet['Avg2']<-apply(
-    rpkm(dge.filter)[,groups[[contrasts[[c]][2]]]], 1, mean
-  )[degSet$gene_id]
-  
   degSet$Group_1 <-contrasts[[c]][1]
   degSet$Group_2 <-contrasts[[c]][2]
   
+  Avg1 <- paste(contrasts[[c]][1], 'Avg', sep='_')
+  Avg2 <- paste(contrasts[[c]][2], 'Avg', sep='_')
+  cols = c(
+    'gene_id', 'SYMBOL', 'DESCRIPTION', 'logFC', 'PValue',
+    'FDR', Avg1, Avg2, 'Group_1', 'Group_2'
+  )
+
+
   createDEGSpreadSheet(
     C1 = c,                          # Name of the contrast
-    dg1 = degSet,                       # Data Set for the contrast
+    dg1 = degSet,                    # Data Set for the contrast
     dg1.bioFun = bioSigRNASeq,       # Biological significance filter for dg1
     dg1.fdr = "FDR",                 # Statistic used to filter genes for dg1
     dg1.lfc = "logFC",               # Column in dg1 with log Fold Changes
-    dg1.Avg1 = "Avg1",               # Column in dg1 with average value for Group_1
-    dg1.Avg2 = "Avg2",               # Column in dg1 with average value for Group_2
+    dg1.Avg1 = Avg1,                 # Column in dg1 with average value for Group_1
+    dg1.Avg2 = Avg2,                 # Column in dg1 with average value for Group_2
     dg1.me = 2,                      # Min. expression for dg1.bioFun
-    dg1.x = 23,                      # row number, co0rner of dg1 Summary table
+    dg1.x = 23,                      # row number, corner of dg1 Summary table
     dg1.y = 2,                       # col number, corner of dg1 Summary table
-    dg1.ds = "Pax6 Genes",           # short description for contrast C1 (dg1)
+    dg1.ds = contrast_descriptions[[c]], # short description for contrast C1 (dg1) 
     template = "scripts/deg_template.xlsx",
     descPageName="Data Description", # Name of sheet to write summary tables
     wb = NULL,                       # Optionally pass a workbook object instead.
     pref = "" ,                      # Prefix for output file.
     fname=NULL,                      # Manually specify an output file name
     use_lfc = FALSE,                 # Whether to use logFC or Fold_Change
-    cols=c(
-      "gene_id",
-      "SYMBOL", 
-      "DESCRIPTION", 
-      "logFC", 
-      "PValue", 
-      "FDR", 
-      "Avg1", 
-      "Avg2"
+    cols=setdiff(                    # Names of columns to keep in final tables
+      cols, 
+      c('Group_1', 'Group2')
     ),
     sc_cols=c("PValue", "FDR")
   )
+  
+  # Write full DEG List to a text file
   fn<-paste(wd,"/results/",c,"_","DEG_Table.tsv", sep="")
-  write.table(degSet, file=fn, sep="\t", quote=F, row.names = F )
+  write.table(degSet[,cols], file=fn, sep="\t", quote=F, row.names = F )
 }
   

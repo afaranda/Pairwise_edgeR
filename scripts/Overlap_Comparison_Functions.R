@@ -531,7 +531,7 @@ bioSigRNASeq<-function(
     df<-df %>% 
       filter(abs(lfc) >= minLfc & stat <= maxStat) %>% 
       filter(a1 >= minExp | a2 >= minExp) %>%
-      filter(abs( a1 - a2) > 2)
+      filter(abs( a1 - a2) > minExp)
     
     sloc<-names(cols)
     names(sloc)<-cols
@@ -543,7 +543,6 @@ bioSigArray<-function(
   df, lfc = "logFC", stat="FDR", a1="Avg1", a2="Avg2", 
   minExp=0, maxStat=0.05, minLfc=1
 ){
-  print(minExp)
   cols<-c(lfc=lfc, stat=stat, a1=a1, a2=a2)
   df<-dfSubname(df, cols)
   df<-df %>% 
