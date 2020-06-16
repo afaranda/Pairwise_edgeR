@@ -71,18 +71,24 @@ master<-DGEList(
 
 # Define Groups As a list of the form: "Group1=c('S1', 'S2', 'S3')
 # Each list element is the name of the Group and points to a
-# Vector of sample labels
-
+# Vector of sample labels, drop samples without a group. 
+# A sample can only be assigned to one group.
+f<-function(z, gr){
+  (names(gr)[sapply(gr, function(x, y=z) y %in% x)])[1]
+}
 groups=list(
   Control=c('1_S1', '2_S2', '4_S3'),
   Treatment=c('6_S4', '7_S5', '8_S6')
 )
+dge<-master[,unlist(groups)]
+dge$samples$group<-sapply(dge$samples$sample, f, gr=groups)
+
 
 # Add Average FPKMs to gene table in master DGEList
 for(g in names(groups)){
   cn<-paste(g, "Avg", sep="_")
   s<-groups[[g]]
-  master$genes[cn] <- apply(rpkm(master)[,s], 1, mean)   
+  dge$genes[cn] <- apply(rpkm(dge)[,s], 1, mean)   
 }
 
 # Define A list of named contrasts; each element points to a vector with
