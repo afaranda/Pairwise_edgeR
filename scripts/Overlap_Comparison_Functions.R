@@ -211,7 +211,7 @@ subsetTables<-function(
           sloc[c(grep("\\.g1$", sloc), grep("\\.g2$", sloc))]
         )
         sloc<-sloc[-c(grep("\\.g1$", sloc), grep("\\.g2$", sloc)) ]
-        print(keep)
+        # print(keep)
         tables[[t]]<-tables[[t]][, keep]
         tables[[t]]<-dfSubname(tables[[t]], sloc)
         
@@ -235,7 +235,7 @@ subsetTables<-function(
           grep("\\.g2$", names(tables[[t]]))
         )
         keep<-names(tables[[t]])[-drop]
-        print(keep)
+        # print(keep)
         sloc<-sloc[-c(grep("g1$", sloc), grep("g2$", sloc))]
         tables[[t]]<-dfSubname(tables[[t]], sloc)
         tables[[t]]<-dfSubname(tables[[t]], frp)
@@ -282,7 +282,7 @@ compareHits<-function(
   minDiff = 2,              # Minimum difference for biological significance
   minAvg  = 2               # Minimum Abundance for biologuical significance
 ){
-  print(length(stat))
+  # print(length(stat))
 
   # Standardize column headers
   cols<-c(lfc=lfc, pvl=pvl, fdr=fdr, g1=g1, g2=g2, a1=a1, a2=a2)
@@ -296,7 +296,7 @@ compareHits<-function(
     df$dg2.lfc<-ifelse(df$dg2.lfc >= 0, 2^df$dg2.lfc, -1/2^df$dg2.lfc)
   }
   if(!is.null(annot)){
-    print(head(annot))
+    # print(head(annot))
     if(any(grepl(id_col, names(annot)))){
       print("found ID")
       if(length(unique(annot[,id_col])) == nrow(annot)){
@@ -311,7 +311,7 @@ compareHits<-function(
     }
   }
   # Subset results
-  print(length(stat))
+  # print(length(stat))
   if (stat){
     tables<-list(
       `Stat Sig Intersection`= df %>%
@@ -445,7 +445,7 @@ compareHits<-function(
           sloc[c(grep("\\.g1$", sloc), grep("\\.g2$", sloc))]
         )
         sloc<-sloc[-c(grep("\\.g1$", sloc), grep("\\.g2$", sloc)) ]
-        print(keep)
+        # print(keep)
         tables[[t]]<-tables[[t]][, keep]
         tables[[t]]<-dfSubname(tables[[t]], sloc)
         
@@ -469,7 +469,7 @@ compareHits<-function(
           grep("\\.g2$", names(tables[[t]]))
         )
         keep<-names(tables[[t]])[-drop]
-        print(keep)
+        # print(keep)
         sloc<-sloc[-c(grep("g1$", sloc), grep("g2$", sloc))]
         tables[[t]]<-dfSubname(tables[[t]], sloc)
         tables[[t]]<-dfSubname(tables[[t]], frp)

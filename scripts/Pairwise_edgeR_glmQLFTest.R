@@ -39,15 +39,23 @@ ah<-AnnotationHub()
 # Run Query to find proper Annotation Set:
 # AnnotationHub::query(ah, pattern=c("EnsDb", "Mus musculus", "98"))
 edb<-ah[['AH75036']]
-gt<-merge(
-  gt, AnnotationDbi::select(
-    edb, keys=gt$gene_id, 
-    columns = c("SYMBOL", "DESCRIPTION"), 
+lt<-merge(
+  lt, AnnotationDbi::select(
+    edb, keys=lt$gene_id, 
+    columns = c("SYMBOL", "DESCRIPTION", "GENEBIOTYPE", "SEQCOORDSYSTEM"), 
     keytype = "GENEID"
   ),
   by.x = 'gene_id', by.y='GENEID'
 )
-row.names(gt)<-gt$gene_id
+
+lt<-merge(
+  lt, AnnotationDbi::select(
+    org.Mm.eg.db, keys=unique(lt$SYMBOL), 
+    columns = c("ENTREZID"), 
+    keytype = "SYMBOL"
+  ), by='SYMBOL'
+)
+row.names(lt)<-lt$gene_id
 rm(ah, edb)
 detach(package:AnnotationHub, unload=T)
 detach(package:ensembldb, unload=T)
@@ -186,4 +194,3 @@ for( c in names(contrasts)){
   fn<-paste(wd,"/results/",c,"_","DEG_Table.tsv", sep="")
   write.table(degSet[,cols], file=fn, sep="\t", quote=F, row.names = F )
 }
-  
