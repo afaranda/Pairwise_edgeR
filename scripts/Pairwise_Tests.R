@@ -4,7 +4,7 @@ library(dplyr)
 options(echo=T)
 
 # Enter Working Directory and Load Raw Data
-setwd('/Users/afaranda/Desktop/LEC_Time_Series')
+setwd('/Users/adam/Pairwise_edgeR')
 source('scripts/BuildDataMatrix.R')
 source('scripts/Excel_Write_Functions.R')
 source('scripts/Overlap_Comparison_Functions.R')
@@ -27,7 +27,7 @@ ft<-hc_identifierConsistency(ds, ft, idCol=1)
 row.names(ft)<-ft$sample
 
 # Import "Gene Length" Annotation to add to dgelist
-gt<-read.table(
+lt<-read.table(
   'data/gene_coding_lengths.txt', 
   header=T, quote="", sep="\t", 
   stringsAsFactors = F
@@ -65,7 +65,7 @@ detach(package:AnnotationFilter, unload=T)
 df=hc_buildDataFrame(ds, ft, return_matrix = F)
 master<-DGEList( 
   counts = df,
-  genes = gt[row.names(df),],
+  genes = lt[row.names(df),],
   samples = ft[colnames(df),],
 )
 
@@ -77,9 +77,8 @@ f<-function(z, gr){
   (names(gr)[sapply(gr, function(x, y=z) y %in% x)])[1]
 }
 groups=list(
-  Control=c('S1', 'S2', 'S3'),
-  Treatment=c('S4', 'S5', 'S6'),
-  Other=c('S7', 'S8', 'S9')
+  Wildtype=paste('WT',1:3,sep=''),
+  Pax6cKO=paste('P6',1:3,sep='')
 )
 dge<-master[,unlist(groups)]
 dge$samples$group<-factor(
@@ -94,21 +93,11 @@ for(g in names(groups)){
   dge$genes[cn] <- apply(rpkm(dge)[,s], 1, mean)   
 }
 
-
-group<-factor(
-  sapply(unlist(groups), f, gr=groups),
-  levels = names(groups)
-)
-design<-model.matrix(~0+group)
-
-
-
 # Define A list of named contrasts; each element points to a vector with
 # a pair of group labels. Positive fold changes will be associated
 # with the second group listed. 
 contrasts=list(
-  Treatment_vs_Control=c('Control', 'Treatment'),
-  Other_vs_Treatment=c('Treatment', 'Other')
+  Pax6cKO_vs_Wildtype=c('Wildtype', 'Pax6cKO')
 )
 
 contrast_descriptions<-list(
@@ -135,7 +124,7 @@ colnames(design)<-gsub(
 dge<-dge[filterByExpr(dge, design), ,keep.lib.sizes=F]  # drop low count genes
 dge<-calcNormFactors(dge)                          # Calculate Scaling Factors
 dge<-estimateDisp(dge, design, robust = T)               # Estimate Dispersion
-fit<-glmQLFit(dge, design)                    # Fit QLF Model to design matrix
+fit<-glmQLFit(dge, design, robust = T)        # Fit QLF Model to design matrix
 
 ## Generate diagnostic plots. 
 png("results/BCV_Plot.png")
