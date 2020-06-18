@@ -14,7 +14,7 @@ options(echo=T)
 
 # Enter Working Directory and Load Raw Data
 setwd('/Users/adam/Pairwise_edgeR')
-source('scripts/BuildDataMatrix.R')
+source('scripts/BuildHTSeq_DataMatrix.R')
 source('scripts/Excel_Write_Functions.R')
 source('scripts/Overlap_Comparison_Functions.R')
 wd<-getwd()
