@@ -131,15 +131,15 @@ png("results/BCV_Plot.png")
 plotBCV(dge)                                                 # BCV Plot
 dev.off()
 
-png(
-  "results/PCA_Plot.png",   # PCA Plot
-  width=600, height = 400
-)
-plotPrinComp(
-  cpm(dge, log=T), ft=dge$samples,                  
-  idCol = 0, groupCol = 'group'
-)
-dev.off()
+# png(
+#   "results/PCA_Plot.png",   # PCA Plot
+#   width=600, height = 400
+# )
+# plotPrinComp(
+#   cpm(dge, log=T), ft=dge$samples,                  
+#   idCol = 0, groupCol = 'group'
+# )
+# dev.off()
 
 png(
   "results/MDS_Plot.png",  # MDS Plot
