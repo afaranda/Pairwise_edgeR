@@ -1,5 +1,14 @@
+##############################################################################
+#                                                                            #
+#  File: Pairwise_Tests.R                                                    #
+#  Author: Adam Faranda                                                      #
+#  Created: June 18, 2020                                                    #
+#  Purpose:  Estimate magnitude and statistical significance of              #
+#            differential expression using edgeR's exactTest and             #
+#            Quasi-Likliehood methods.                                       #
+#                                                                            #
+##############################################################################
 library(edgeR)
-library('AnnotationHub')
 library(dplyr)
 options(echo=T)
 
@@ -35,31 +44,38 @@ lt<-read.table(
 
 
 # Import Annotations, append to "Gene Length" Table
-ah<-AnnotationHub()
-# Run Query to find proper Annotation Set:
-# AnnotationHub::query(ah, pattern=c("EnsDb", "Mus musculus", "98"))
-edb<-ah[['AH75036']]
-lt<-merge(
-  lt, AnnotationDbi::select(
-    edb, keys=lt$gene_id, 
-    columns = c("SYMBOL", "DESCRIPTION", "GENEBIOTYPE", "SEQCOORDSYSTEM"), 
-    keytype = "GENEID"
-  ),
-  by.x = 'gene_id', by.y='GENEID'
-)
-
-lt<-merge(
-  lt, AnnotationDbi::select(
-    org.Mm.eg.db, keys=unique(lt$SYMBOL), 
-    columns = c("ENTREZID"), 
-    keytype = "SYMBOL"
-  ), by='SYMBOL'
-)
-row.names(lt)<-lt$gene_id
-rm(ah, edb)
-detach(package:AnnotationHub, unload=T)
-detach(package:ensembldb, unload=T)
-detach(package:AnnotationFilter, unload=T)
+fn<-paste(data_dir,'Gene_Annotations.csv', sep='/')
+if(file.exists(fn)){
+  lt<-read.csv(fn, row.names = 1)
+  print(TRUE)
+} else {
+  library('AnnotationHub')
+  ah<-AnnotationHub()
+  # Run Query to find proper Annotation Set:
+  # AnnotationHub::query(ah, pattern=c("EnsDb", "Mus musculus", "98"))
+  edb<-ah[['AH75036']]
+  lt<-merge(
+    lt, AnnotationDbi::select(
+      edb, keys=lt$gene_id, 
+      columns = c("SYMBOL", "DESCRIPTION", "GENEBIOTYPE", "SEQCOORDSYSTEM"), 
+      keytype = "GENEID"
+    ),
+    by.x = 'gene_id', by.y='GENEID'
+  )
+  
+  lt<-merge(
+    lt, AnnotationDbi::select(
+      org.Mm.eg.db, keys=unique(lt$SYMBOL), 
+      columns = c("ENTREZID"), 
+      keytype = "SYMBOL"
+    ), by='SYMBOL'
+  )
+  row.names(lt)<-lt$gene_id
+  rm(ah, edb)
+  detach(package:AnnotationHub, unload=T)
+  detach(package:ensembldb, unload=T)
+  detach(package:AnnotationFilter, unload=T)
+} 
 
 # Assemble master "DGE List" Object. 
 df=hc_buildDataFrame(ds, ft, return_matrix = F)
@@ -68,7 +84,7 @@ master<-DGEList(
   genes = lt[row.names(df),],
   samples = ft[colnames(df),],
 )
-
+  
 # Define Groups As a list of the form: "Group1=c('S1', 'S2', 'S3')
 # Each list element is the name of the Group and points to a
 # Vector of sample labels, drop samples without a group. 
