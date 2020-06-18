@@ -13,18 +13,28 @@ to apply this workflow:
     will be implemented using the tximport package
 
 
-3. Make updates to the script "Pairwise_edgeR_ExactTest.R"
+3. Make updates to the script "Pairwise_Tests.R"
     * update the variables "edb", "groups", and "contrasts" to
-  reflect the desired sample assignment and contrasts
-    * Update the call to function "createDEGSpreadSheet" to match the column
-  configuration desired for outpout spreadsheets.
-    * If needed, run the first 22 lines interactively to generate a sample
-  manifest file.  This file can be edited in a spreadsheet editor to add
-  sample grouping information.
+    reflect the desired sample assignment and contrasts
+    * update any output file names for generated plots and data tables
+    * If needed, run the first 36 lines interactively to generate a sample
+    manifest file.  This file can be edited in a spreadsheet editor to add
+    sample grouping information.
 
-4. Run the script "Pairwise_edgeR_ExactTest.R" to generate spreadsheets with Differential expression statistcs calculated by edgeR
-    * Future verisions will also generate a pdf report that has dispersion and
-    MDS plots and summary DE statistics
+4. Run the script "Pairwise_Tests.R" to generate spreadsheets with 
+Differential expression statistcs calculated by edgeR
+    * All Samples provided are combined into a single DGEList
+    * Low-count filtering, Normalization Factor and Dispersion estimates
+    are calculated for the full DGEList.
+    * The script generates DEG Tables (csv files) for the 
+    Quasi-likelihood test and the Exact Test based on user specified 
+    pairwise contrasts.
+    * The script generates a BCV and MDS plot for the full DGEList
     
-5. Manually edit and review experiment-specific fields in the generated
-spreadsheet
+5. Use Write_DEG_Spreadsheet.R can be used to generate excel spreadsheets
+    * Edit this script to indicate which DEG Tables (found in the results 
+    folder) to generate spreadsheets for.
+    * There are tons of dumb little parameters
+    
+    
+    

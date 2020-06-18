@@ -35,12 +35,6 @@ ds<-hc_loadFiles(ft)
 ft<-hc_identifierConsistency(ds, ft, idCol=1)
 row.names(ft)<-ft$sample
 
-# Import "Gene Length" Annotation to add to dgelist
-lt<-read.table(
-  'data/gene_coding_lengths.txt', 
-  header=T, quote="", sep="\t", 
-  stringsAsFactors = F
-)
 
 
 # Import Annotations, append to "Gene Length" Table
@@ -50,6 +44,11 @@ if(file.exists(fn)){
   print(TRUE)
 } else {
   library('AnnotationHub')
+  lt<-read.table(
+    'data/gene_coding_lengths.txt', 
+    header=T, quote="", sep="\t", 
+    stringsAsFactors = F
+  )
   ah<-AnnotationHub()
   # Run Query to find proper Annotation Set:
   # AnnotationHub::query(ah, pattern=c("EnsDb", "Mus musculus", "98"))
