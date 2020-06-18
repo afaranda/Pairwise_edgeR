@@ -116,10 +116,6 @@ contrasts=list(
   Pax6cKO_vs_Wildtype=c('Wildtype', 'Pax6cKO')
 )
 
-contrast_descriptions<-list(
-  Treatment_vs_Control="Pairwise Contrast between two conditions"
-)
-
 # Function Calculates fold change from logFC
 calcFC<-function(lfc){
 	if(!is.na(lfc) & lfc > 0){
@@ -211,38 +207,4 @@ for( c in names(contrasts)){
     "results/Experiment_",c,"_QLFTest_DEG.csv", sep="")
   write.csv(deg.qt, fn)
   
-  # 
-  # 
-  # Avg1 <- paste(contrasts[[c]][1], 'Avg', sep='_')
-  # Avg2 <- paste(contrasts[[c]][2], 'Avg', sep='_')
-  # cols = c(
-  #   'gene_id', 'SYMBOL', 'DESCRIPTION', 'logFC', 'PValue',
-  #   'FDR', Avg1, Avg2, 'Group_1', 'Group_2'
-  # )
-
-  # createDEGSpreadSheet(
-  #   C1 = c,                          # Name of the contrast
-  #   dg1 = degSet,                    # Data Set for the contrast
-  #   dg1.bioFun = bioSigRNASeq,       # Biological significance filter for dg1
-  #   dg1.fdr = "FDR",                 # Statistic used to filter genes for dg1
-  #   dg1.lfc = "logFC",               # Column in dg1 with log Fold Changes
-  #   dg1.Avg1 = Avg1,                 # Column in dg1 with average value for Group_1
-  #   dg1.Avg2 = Avg2,                 # Column in dg1 with average value for Group_2
-  #   dg1.me = 2,                      # Min. expression for dg1.bioFun
-  #   dg1.x = 23,                      # row number, corner of dg1 Summary table
-  #   dg1.y = 2,                       # col number, corner of dg1 Summary table
-  #   dg1.ds = contrast_descriptions[[c]], # short description for contrast C1 (dg1) 
-  #   template = "scripts/deg_template.xlsx",
-  #   descPageName="Data Description", # Name of sheet to write summary tables
-  #   wb = NULL,                       # Optionally pass a workbook object instead.
-  #   pref = "" ,                      # Prefix for output file.
-  #   fname=NULL,                      # Manually specify an output file name
-  #   use_lfc = FALSE,                 # Whether to use logFC or Fold_Change
-  #   cols=setdiff(                    # Names of columns to keep in final tables
-  #     cols, 
-  #     c('Group_1', 'Group2')
-  #   ),
-  #   sc_cols=c("PValue", "FDR")
-  # )
-  # 
 }
