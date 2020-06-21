@@ -64,17 +64,6 @@ contrast_files<-list(
   )
 )
 
-# Function Calculates fold change from logFC
-calcFC<-function(lfc){
-	if(!is.na(lfc) & lfc > 0){
-		return(2^lfc)
-	}
-	else if(!is.na(lfc) & lfc < 0){
-	     return(0 - 2^abs(lfc))
-	}
-	else { return(0)}
-}
-
 # Calculate Differential Expression based on 
 for( c in names(contrasts)){
   
