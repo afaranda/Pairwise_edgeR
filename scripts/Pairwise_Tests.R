@@ -92,8 +92,8 @@ f<-function(z, gr){
   (names(gr)[sapply(gr, function(x, y=z) y %in% x)])[1]
 }
 groups=list(
-  Wildtype=paste('WT',1:3,sep=''),
-  Pax6cKO=paste('P6',1:3,sep='')
+  WT=paste('WT',1:3,sep=''),
+  P6=paste('P6',1:3,sep='')
 )
 dge<-master[,unlist(groups)]
 dge$samples$group<-factor(
@@ -112,7 +112,7 @@ for(g in names(groups)){
 # a pair of group labels. Positive fold changes will be associated
 # with the second group listed. 
 contrasts=list(
-  Pax6cKO_vs_Wildtype=c('Wildtype', 'Pax6cKO')
+  Pax6cKO_vs_Wildtype=c('WT', 'P6')
 )
 
 # Function Calculates fold change from logFC

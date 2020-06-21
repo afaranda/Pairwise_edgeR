@@ -1,9 +1,9 @@
 ##############################################################################
 #                                                                            #
-#  File: Pairwise_Tests.R                                                    #
+#  File: Compare_DEG_Analyses.R                                              #
 #  Author: Adam Faranda                                                      #
 #  Created: June 18, 2020                                                    #
-#  Purpose: Write Pairwise analysis results to an excel spreadsheet          #
+#  Purpose: Compare intersections between two or more DEG Tables             #
 #                                                                            #
 ##############################################################################
 library(edgeR)
@@ -12,7 +12,6 @@ options(echo=T)
 
 # Enter Working Directory and Load Raw Data
 setwd('/Users/adam/Pairwise_edgeR')
-source('scripts/BuildDataMatrix.R')
 source('scripts/Excel_Write_Functions.R')
 source('scripts/Overlap_Comparison_Functions.R')
 wd<-getwd()
@@ -36,15 +35,15 @@ groups=list(
 # a pair of group labels. Positive fold changes will be associated
 # with the second group listed. 
 contrasts=list(
-  P6vsWT_Ex=c('Wildtype', 'Pax6cKO'),
-  P6vsWT_Ql=c('Wildtype', 'Pax6cKO')
+  Ex=c('WT', 'P6'),
+  Ql=c('WT', 'P6')
 )
 
 # Define A list of named contrasts; each element points to a string wigch
 # briefly describes the contrast
 contrast_descriptions<-list(
-  P6vsWT_Ex="Pairwise Contrast between two conditions; Exact Test",
-  P6vsWT_Ql="Pairwise Contrast between two conditions; Quasi Liklihood"
+  Ex="Pairwise Contrast between two conditions; Exact Test",
+  Ql="Pairwise Contrast between two conditions; Quasi Liklihood"
 )
 
 # Define A list of named contrasts; each element points to a vector with
@@ -52,13 +51,13 @@ contrast_descriptions<-list(
 # generating the spreadsheet. The second is the name of the file with
 # differential expression results. 
 contrast_files<-list(
-  P6vsWT_Ex=paste(
+  Ex=paste(
       results,'Experiment_Pax6cKO_vs_Wildtype_Exact_Test_DEG.csv', sep='/'),
-  P6vsWT_Ql=paste(
+  Ql=paste(
       results,'Experiment_Pax6cKO_vs_Wildtype_QLFTest_DEG.csv', sep='/')
 )
 comparisons<-list(
-  Pax6vsWT_Stat=c('P6vsWT_Ex', 'P6vsWT_Ql')
+  Pax6vsWT_Stat=c('Ex', 'Ql')
 )
 
 # Compare Differential Expression Analyses
@@ -74,13 +73,16 @@ for( c in names(comparisons)){
   )
   dg1$Group_1<-contrasts[[C1]][1]
   dg1$Group_2<-contrasts[[C1]][2]
-  
 
   Avg1 <- paste(contrasts[[C1]][1], 'Avg', sep='_')
   Avg2 <- paste(contrasts[[C1]][2], 'Avg', sep='_')
+  
+  names(dg1)<-gsub(paste('^',Avg1,'$', sep=''), 'Avg1', names(dg1))
+  names(dg1)<-gsub(paste('^',Avg2,'$', sep=''), 'Avg2', names(dg1))
+  
   cols.1 = c(
     'gene_id', 'SYMBOL', 'DESCRIPTION', 'logFC', 'PValue',
-    'FDR', Avg1, Avg2, 'Group_1', 'Group_2'
+    'FDR', 'Avg1', 'Avg2', 'Group_1', 'Group_2'
   )
   print(head(dg1))
   
@@ -94,12 +96,16 @@ for( c in names(comparisons)){
   
   Avg1 <- paste(contrasts[[C2]][1], 'Avg', sep='_')
   Avg2 <- paste(contrasts[[C2]][2], 'Avg', sep='_')
+  
+  names(dg2)<-gsub(paste('^',Avg1,'$', sep=''), 'Avg1', names(dg2))
+  names(dg2)<-gsub(paste('^',Avg2,'$', sep=''), 'Avg2', names(dg2))
+  
   cols.2 = c(
     'gene_id', 'SYMBOL', 'DESCRIPTION', 'logFC', 'PValue',
-    'FDR', Avg1, Avg2, 'Group_1', 'Group_2'
+    'FDR', 'Avg1', 'Avg2', 'Group_1', 'Group_2'
   )
   print(head(dg2))
-  
+
   createMethodComparisonSpreadsheet(
     C1 =C1, C2 = C2,                 # Names of each contrast
     dg1 = dg1, dg2 = dg2,  # DEG sets to compare (Full Sets)
@@ -123,7 +129,7 @@ for( c in names(comparisons)){
     bsg.y = 2,                       # col number, corner of bio. sig intersect
     dg1.ds = "TMM",             # short description for contrast C1 (dg1)
     dg2.ds = "CQN",           # short description for contrast C1 (dg2)
-    template="scripts/method_comp_template.xlsx",     # Name of spreadsheet template file
+    template="scripts/deg_comparison_template.xlsx",     # Name of spreadsheet template file
     descPageName="Data Description", # Name of sheet to write summary  tables
     wb = NULL,                       # Optionally pass a workbook object instead.
     pref = "TMM_vs_CQN" ,          # Prefix for output file.
