@@ -117,17 +117,6 @@ contrasts=list(
   Pax6cKO_vs_Wildtype=c('WT', 'P6')
 )
 
-# Function Calculates fold change from logFC
-calcFC<-function(lfc){
-	if(!is.na(lfc) & lfc > 0){
-		return(2^lfc)
-	}
-	else if(!is.na(lfc) & lfc < 0){
-	     return(0 - 2^abs(lfc))
-	}
-	else { return(0)}
-}
-
 # Prepare DGEList for Differential Expression Analysis
 design<-model.matrix(~0+group, dge$samples)     # Define Experimental Design
 colnames(design)<-gsub(
