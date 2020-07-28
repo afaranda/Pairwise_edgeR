@@ -68,6 +68,7 @@ if(file.exists(fn)){
       keytype = "SYMBOL"
     ), by='SYMBOL'
   )
+  lt %>% filter( !is.na(length) && !is.na(gc))
   row.names(lt)<-lt$gene_id
   rm(ah, edb)
   detach(package:AnnotationHub, unload=T)
@@ -122,9 +123,17 @@ colnames(design)<-gsub(
   colnames(design)
 )
 dge<-dge[filterByExpr(dge, design), ,keep.lib.sizes=F]  # drop low count genes
+eda<-newSeqExpressionSet(
+  counts = dge$counts,
+  featureData = dge$genes,
+  phenoData = dge$samples
+)
+
+# 
 dge<-calcNormFactors(dge)                          # Calculate Scaling Factors
 dge<-estimateDisp(dge, design, robust = T)               # Estimate Dispersion
 fit<-glmQLFit(dge, design, robust = T)        # Fit QLF Model to design matrix
+
 
 ## Generate diagnostic plots. 
 png("results/BCV_Plot.png")
