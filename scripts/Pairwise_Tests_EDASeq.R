@@ -44,11 +44,10 @@ if(file.exists(fn)){
   print(TRUE)
 } else {
   library('AnnotationHub')
-  lt<-read.table(
-    'data/gene_coding_lengths.txt', 
-    header=T, quote="", sep="\t", 
-    stringsAsFactors = F
+  lt<-read.csv(
+    "data/EDASeq_Biomart_MouseGenes.csv",row.names = 1
   )
+  lt$gene_id <- row.names(lt)
   ah<-AnnotationHub()
   # Run Query to find proper Annotation Set:
   # AnnotationHub::query(ah, pattern=c("EnsDb", "Mus musculus", "98"))
