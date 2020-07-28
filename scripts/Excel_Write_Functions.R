@@ -380,6 +380,8 @@ createDEGSpreadSheet<-function(
   gr1<-paste(unique(dg1$Group_1),"Avg", sep="_")
   gr2<-paste(unique(dg1$Group_2),"Avg", sep="_")
   
+  print(head(dg1))
+  print(cols)
   dg1<-dg1[,cols]
   names(dg1)[grep(dg1.Avg1, names(dg1))]<-gr1
   names(dg1)[grep(dg1.Avg2, names(dg1))]<-gr2
