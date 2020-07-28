@@ -1,15 +1,17 @@
 ##############################################################################
 #                                                                            #
-#  File: Pairwise_Tests.R                                                    #
+#  File: Pairwise_Tests_EDASeq.R                                             #
 #  Author: Adam Faranda                                                      #
-#  Created: June 18, 2020                                                    #
+#  Created: July 27, 2020                                                    #
 #  Purpose:  Estimate magnitude and statistical significance of              #
 #            differential expression using edgeR's exactTest and             #
-#            Quasi-Likliehood methods.                                       #
+#            Quasi-Likliehood methods; Use EDASeq to normalize for           #
+#            gene length and GCC Content in lieu of the TMM method           #
 #                                                                            #
 ##############################################################################
 library(edgeR)
 library(dplyr)
+library(EDASeq)
 options(echo=T)
 
 # Enter Working Directory and Load Raw Data
