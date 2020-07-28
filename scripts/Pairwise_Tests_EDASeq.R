@@ -74,15 +74,15 @@ if(file.exists(fn)){
   detach(package:AnnotationHub, unload=T)
   detach(package:ensembldb, unload=T)
   detach(package:AnnotationFilter, unload=T)
-  lt %>% filter( !is.na(length) && !is.na(gc))
+  lt<-lt %>% filter(!is.na(length) & !is.na(gc))
   write.csv(lt, fn)
 } 
 
 # Assemble master "DGE List" Object. 
 df=hc_buildDataFrame(ds, ft, return_matrix = F)
 master<-DGEList( 
-  counts = df,
-  genes = lt[row.names(df),],
+  counts = df[row.names(lt),],
+  genes = lt,
   samples = ft[colnames(df),],
 )
   
