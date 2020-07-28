@@ -37,8 +37,6 @@ ds<-hc_loadFiles(ft)
 ft<-hc_identifierConsistency(ds, ft, idCol=1)
 row.names(ft)<-ft$sample
 
-
-
 # Import Annotations, append to "Gene Length" Table
 fn<-paste(data_dir,'Gene_Annotations.csv', sep='/')
 if(file.exists(fn)){
@@ -76,6 +74,7 @@ if(file.exists(fn)){
   detach(package:AnnotationHub, unload=T)
   detach(package:ensembldb, unload=T)
   detach(package:AnnotationFilter, unload=T)
+  write.csv(lt, fn)
 } 
 
 # Assemble master "DGE List" Object. 

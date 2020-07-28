@@ -74,6 +74,7 @@ if(file.exists(fn)){
   detach(package:AnnotationHub, unload=T)
   detach(package:ensembldb, unload=T)
   detach(package:AnnotationFilter, unload=T)
+  write.csv(lt, fn)
 } 
 
 # Assemble master "DGE List" Object. 
