@@ -68,12 +68,13 @@ if(file.exists(fn)){
       keytype = "SYMBOL"
     ), by='SYMBOL'
   )
-  lt %>% filter( !is.na(length) && !is.na(gc))
+  
   row.names(lt)<-lt$gene_id
   rm(ah, edb)
   detach(package:AnnotationHub, unload=T)
   detach(package:ensembldb, unload=T)
   detach(package:AnnotationFilter, unload=T)
+  lt %>% filter( !is.na(length) && !is.na(gc))
   write.csv(lt, fn)
 } 
 
