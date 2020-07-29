@@ -130,6 +130,18 @@ eda<-newSeqExpressionSet(
   phenoData = dge$samples
 )
 
+eda.g<-withinLaneNormalization(eda,"gc", which ='loess', offset = T)
+eda.gl<-withinLaneNormalization(eda.g,"length", which='loess', offset = T)
+eda.gln<-betweenLaneNormalization(eda.gl, which="full", offset = T)
+dge.eda.gln <-dge
+dge.eda.gln$offset<- -offst(eda.gln)
+
+eda.l<-withinLaneNormalization(eda,"length", which ='loess', offset = T)
+eda.lg<-withinLaneNormalization(eda.l,"gc", which='loess', offset = T)
+eda.lgn<-betweenLaneNormalization(eda.lg, which="full", offset = T)
+dge.eda.lgn <-dge
+dge.eda.lgn$offset<- -offst(eda.lgn)
+
 # 
 dge<-calcNormFactors(dge)                          # Calculate Scaling Factors
 dge<-estimateDisp(dge, design, robust = T)               # Estimate Dispersion
