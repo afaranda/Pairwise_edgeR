@@ -130,22 +130,13 @@ eda<-newSeqExpressionSet(
   phenoData = dge$samples
 )
 
-# Setup EDASeq Analysis -- based on vignette, with current edgeR best practice
+# Setup EDASeq Analysis -- offsets and glmQLFit
 eda<-withinLaneNormalization(eda,"length", which='full', offset = T)
-eda<-betweenLaneNormalization(eda.gl, which="full", offset = T)
-eda.disp<-estimateDisp(
-  counts(eda), 
-  design = design,
-  offset = -offst(eda),
-  robust = T
-)
-eda.fit<-glmQLFit(
-  counts(eda),
-  design = design,
-  dispersion = eda.disp,
-  offset = -offst(eda),
-  robust = T
-)
+eda<-betweenLaneNormalization(eda, which="full", offset = T)
+dge.eda<-dge
+dge.eda$offset<- -offst(eda)
+dge.eda<-estimateDisp(dge.eda, design=design, robust=T)
+eda.fit<-glmQLFit(dge.eda, design = design, robust = T)
 
 
 # Setup standard edgeR Analysis
@@ -157,16 +148,6 @@ fit<-glmQLFit(dge, design, robust = T)        # Fit QLF Model to design matrix
 png("results/BCV_Plot.png")
 plotBCV(dge)                                                 # BCV Plot
 dev.off()
-
-# png(
-#   "results/PCA_Plot.png",   # PCA Plot
-#   width=600, height = 400
-# )
-# plotPrinComp(
-#   cpm(dge, log=T), ft=dge$samples,                  
-#   idCol = 0, groupCol = 'group'
-# )
-# dev.off()
 
 png(
   "results/MDS_Plot.png",  # MDS Plot
@@ -209,17 +190,27 @@ for( c in names(contrasts)){
   print(contrasts[[c]])
   print(cn)
 
-  # Estimate Differential Expression
-
+  # Estimate Differential Expression for standard model
   deg.et<-as.data.frame(topTags(exactTest(dge, pair = contrasts[[c]]), n=Inf))
   deg.qt<-as.data.frame(topTags(glmQLFTest(fit,contrast=cn), n=Inf))
   
   fn<-paste(
-    "results/Experiment_",c,"_Exact_Test_DEG.csv", sep="")
+    "results/TMM_",c,"_Exact_Test_DEG.csv", sep="")
   write.csv(deg.et, fn)
   
   fn<-paste(
-    "results/Experiment_",c,"_QLFTest_DEG.csv", sep="")
+    "results/TMM_",c,"_QLFTest_DEG.csv", sep="")
   write.csv(deg.qt, fn)
   
+  # Estimate Differential Expression for EDASeq Normalized model
+  deg.eda.et<-as.data.frame(topTags(exactTest(dge.eda, pair = contrasts[[c]]), n=Inf))
+  deg.eda.qt<-as.data.frame(topTags(glmQLFTest(eda.fit, contrast=cn), n=Inf))
+  
+  fn<-paste(
+    "results/EDASeq_Length_",c,"_Exact_Test_DEG.csv", sep="")
+  write.csv(deg.eda.et, fn)
+  
+  fn<-paste(
+    "results/EDASeq_Length_",c,"_QLFTest_DEG.csv", sep="")
+  write.csv(deg.eda.qt, fn)
 }
