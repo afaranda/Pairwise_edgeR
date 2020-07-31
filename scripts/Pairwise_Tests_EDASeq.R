@@ -6,7 +6,7 @@
 #  Purpose:  Estimate magnitude and statistical significance of              #
 #            differential expression using edgeR's exactTest and             #
 #            Quasi-Likliehood methods; Use EDASeq to normalize for           #
-#            gene length and GCC Content in lieu of the TMM method           #
+#            gene length OR GC Content in lieu of the TMM method             #
 #                                                                            #
 ##############################################################################
 library(edgeR)
@@ -130,10 +130,9 @@ eda<-newSeqExpressionSet(
   phenoData = dge$samples
 )
 
-eda.g<-withinLaneNormalization(eda,"gc", which ='loess', offset = T)
-eda.gl<-withinLaneNormalization(eda.g,"length", which='loess', offset = T)
-eda.gln<-betweenLaneNormalization(eda.gl, which="full", offset = T)
-dge.eda.gln <-dge
+eda<-withinLaneNormalization(eda,"length", which='full', offset = T)
+eda<-betweenLaneNormalization(eda.gl, which="full", offset = T)
+dge.eda<-dge
 dge.eda.gln$offset<- -offst(eda.gln)
 
 eda.l<-withinLaneNormalization(eda,"length", which ='loess', offset = T)
