@@ -130,22 +130,28 @@ eda<-newSeqExpressionSet(
   phenoData = dge$samples
 )
 
+# Setup EDASeq Analysis -- based on vignette, with current edgeR best practice
 eda<-withinLaneNormalization(eda,"length", which='full', offset = T)
 eda<-betweenLaneNormalization(eda.gl, which="full", offset = T)
-dge.eda<-dge
-dge.eda.gln$offset<- -offst(eda.gln)
+eda.disp<-estimateDisp(
+  counts(eda), 
+  design = design,
+  offset = -offst(eda),
+  robust = T
+)
+eda.fit<-glmQLFit(
+  counts(eda),
+  design = design,
+  dispersion = eda.disp,
+  offset = -offst(eda),
+  robust = T
+)
 
-eda.l<-withinLaneNormalization(eda,"length", which ='loess', offset = T)
-eda.lg<-withinLaneNormalization(eda.l,"gc", which='loess', offset = T)
-eda.lgn<-betweenLaneNormalization(eda.lg, which="full", offset = T)
-dge.eda.lgn <-dge
-dge.eda.lgn$offset<- -offst(eda.lgn)
 
-# 
+# Setup standard edgeR Analysis
 dge<-calcNormFactors(dge)                          # Calculate Scaling Factors
 dge<-estimateDisp(dge, design, robust = T)               # Estimate Dispersion
 fit<-glmQLFit(dge, design, robust = T)        # Fit QLF Model to design matrix
-
 
 ## Generate diagnostic plots. 
 png("results/BCV_Plot.png")
