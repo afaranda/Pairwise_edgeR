@@ -258,7 +258,8 @@ createBioSigOverlapSpreadSheet<-function(
   fname=NULL,                      # Manually specify an output file name
   idc = 'MGI.symbol',              # Column in dg1 and dg2 with unique gene id
   annot = an,                      # Annotation Table
-  rnc = c()                        # Vector of columns to rename
+  rnc = c(),                       # Vector of columns to rename
+  unit = "Avg"                     # Aggregated unit for groupwise abundance
 ){
   
   allResults<-query(dg1, dg2, id_col = idc)
@@ -275,14 +276,14 @@ createBioSigOverlapSpreadSheet<-function(
   stat.tables<-subsetTables(
     Contrast_1 = C1, Contrast_2 = C2, id_col=idc,
     allResults, annot = annot, unlog=T, descname = T,
-    pvl = "PValue"
+    pvl = "PValue", unit = unit
   )
   stat.inx<-tabulateOverlap(stat.tables, rename = T)
   
   bio.tables<-subsetTables(
     Contrast_1 = C1, Contrast_2 = C2, id_col=idc,
     bioResults, annot = annot, unlog=T, descname = T, stat = F,
-    pvl = "PValue"
+    pvl = "PValue", unit = unit
   )
   bio.inx<-tabulateOverlap(bio.tables, rename = T)
   
