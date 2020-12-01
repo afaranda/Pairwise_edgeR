@@ -395,8 +395,8 @@ createDEGSpreadSheet<-function(
   sc_cols=c("p_value", "FDR"),     # Columns formatted with scientific notation
   rnc = c(logFC="logFC")           # Columns to Rename (Old="New")
 ){
-  gr1<-paste(unique(dg1$Group_1),"Avg", sep="_")
-  gr2<-paste(unique(dg1$Group_2),"Avg", sep="_")
+  gr1<-paste(unique(dg1$Group_1),"Avg_FPKM", sep="_")
+  gr2<-paste(unique(dg1$Group_2),"Avg_FPKM", sep="_")
   
   print(head(dg1))
   print(setdiff(cols, names(dg1)))
@@ -421,7 +421,7 @@ createDEGSpreadSheet<-function(
       corner=c(dg1.x, dg1.y), cn=T, rn=F, tc=F
     )
   )
-  names(descTables)[grep("C1", names(descTables))]<-paste(dg1.ds, C1)
+  names(descTables)[grep("C1", names(descTables))]<-dg1.ds
   
   
   
