@@ -312,8 +312,8 @@ createBioSigOverlapSpreadSheet<-function(
       Table=bio.inx, corner=c(bsg.x, bsg.y), cn=T, rn=T, tc=T
     )
   )
-  names(descTables)[grep("C1", names(descTables))]<-paste(dg1.ds, C1)
-  names(descTables)[grep("C2", names(descTables))]<-paste(dg2.ds, C2)
+  names(descTables)[grep("C1", names(descTables))]<-dg1.ds
+  names(descTables)[grep("C2", names(descTables))]<-dg2.ds
   
   
   # Write Description Tables -- see script "Excel_Write_Functions.R"
