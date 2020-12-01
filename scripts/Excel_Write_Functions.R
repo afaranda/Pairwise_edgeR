@@ -11,7 +11,7 @@ options(echo=T)
 library('openxlsx')
 library('dplyr')
 library('org.Mm.eg.db')
-source("scripts/Overlap_Comparison_Functions.R")
+#source("scripts/Overlap_Comparison_Functions.R")
 
 # Create Styles for text and numeric columns
 tt<-createStyle(
@@ -40,7 +40,8 @@ writeSheet<-function(
     "PValue",
     "p_value", 
     "FDR"
-  )
+  ),
+  rn_cols=c()                         # Columns to rename: Old_col="New_Col"
 ){
   if(!(name %in% wb$sheet_names)){
     addWorksheet(wb, sheetName = name)
@@ -74,7 +75,10 @@ writeSheet<-function(
     wb, sheet = name, cols = 1:ncol(df), 
     widths = sapply(wc, function(x) min(x+4, 36))
   )
-  
+  # Rename Columns
+  for(c in names(rn_cols)){
+    names(df)[grep(paste("^",c,"$",sep=""), names(df))]<-rn_cols[c]
+  }
   writeData(wb, name, df)
 }
 
@@ -232,11 +236,13 @@ createBioSigOverlapSpreadSheet<-function(
   dg1.bioFun = bioSigRNASeq,       # Biological significance filter for dg1
   dg1.fdr = "FDR",                 # Statistic used to filter genes for dg1
   dg1.me = 2,                      # Min. expression for dg1.bioFun
+  dg1.lfc = 1,                     # Min. log 2 fold change for dg1
   dg1.x = 30,                      # row number, corner of dg1 Summary table
   dg1.y = 2,                       # col number, corner of dg1 Summary table
   dg2.bioFun = bioSigRNASeq,       # Biological significance filter for dg2
   dg2.fdr = "FDR",                 # Statistic used to filter genes for dg2
   dg2.me = 2,                      # Min. expression for dg2.bioFun
+  dg2.lfc = 1,                     # Min. log 2 fold change for dg2
   dg2.x = 35,                      # row number, corner of dg2 Summary table
   dg2.y = 2,                       # col number, corner of dg2 Summary table
   ssg.x = 41,                      # row number, corner of stat. sig intersect
@@ -251,13 +257,14 @@ createBioSigOverlapSpreadSheet<-function(
   pref = "FuncTest",               # Prefix for output file.
   fname=NULL,                      # Manually specify an output file name
   idc = 'MGI.symbol',              # Column in dg1 and dg2 with unique gene id
-  annot = an                       # Annotation Table
+  annot = an,                      # Annotation Table
+  rnc = c()                        # Vector of columns to rename
 ){
   
   allResults<-query(dg1, dg2, id_col = idc)
   bioResults<-query(
-    dg1.bioFun(dg1, minExp = dg1.me),
-    dg2.bioFun(dg2, minExp = dg2.me),
+    dg1.bioFun(dg1, minExp = dg1.me, minLfc = dg1.lfc),
+    dg2.bioFun(dg2, minExp = dg2.me, minLfc = dg2.lfc),
     id_col = idc
   )
   
@@ -285,10 +292,18 @@ createBioSigOverlapSpreadSheet<-function(
   # Set up list
   descTables = list(
     C1=list(
-      Table=degSummary(dg1, fdr=dg1.fdr, minExp=dg1.me), corner=c(dg1.x, dg1.y), cn=T, rn=F, tc=F
+      Table=degSummary(
+        dg1, fdr=dg1.fdr, minExp=dg1.me, 
+        lfc_min= dg1.lfc
+      ), 
+      corner=c(dg1.x, dg1.y), cn=T, rn=F, tc=F
     ),
     C2=list(
-      Table=degSummary(dg2, fdr=dg2.fdr, minExp=dg2.me), corner=c(dg2.x, dg2.y), cn=T, rn=F, tc=F
+      Table=degSummary(
+        dg2, fdr=dg2.fdr, minExp=dg2.me,
+        lfc_min = dg2.lfc
+      ), 
+      corner=c(dg2.x, dg2.y), cn=T, rn=F, tc=F
     ),
     `Statistically Significant Intersection`=list(
       Table=stat.inx, corner=c(ssg.x, ssg.y), cn=T, rn=T, tc=T
@@ -316,7 +331,8 @@ createBioSigOverlapSpreadSheet<-function(
   for(i in names(stat.tables)){
     writeSheet(
       wb, stat.tables[[i]], i,
-      nm_cols=c("Change", "Avg")
+      nm_cols=c("Change", "Avg"),
+      rn_cols = rnc
     )
   }
   
@@ -324,7 +340,8 @@ createBioSigOverlapSpreadSheet<-function(
   for(i in names(bio.tables)){
     writeSheet(
       wb, bio.tables[[i]], i,
-      nm_cols=c("Change", "Avg")
+      nm_cols=c("Change", "Avg"),
+      rn_cols = rnc
     )
   }
   # Save workbooks to file  
@@ -375,12 +392,14 @@ createDEGSpreadSheet<-function(
   	"Avg2"
   ),
   nm_cols=c("Change", "Avg"),      # Columns formated numerically
-  sc_cols=c("p_value", "FDR")      # Columns formatted with scientific notation
+  sc_cols=c("p_value", "FDR"),     # Columns formatted with scientific notation
+  rnc = c(logFC="logFC")           # Columns to Rename (Old="New")
 ){
   gr1<-paste(unique(dg1$Group_1),"Avg", sep="_")
   gr2<-paste(unique(dg1$Group_2),"Avg", sep="_")
   
   print(head(dg1))
+  print(setdiff(cols, names(dg1)))
   print(cols)
   dg1<-dg1[,cols]
   names(dg1)[grep(dg1.Avg1, names(dg1))]<-gr1
@@ -438,7 +457,8 @@ createDEGSpreadSheet<-function(
     writeSheet(
       wb, tables[[i]], i,
       nm_cols=nm_cols,
-      sc_cols=sc_cols
+      sc_cols=sc_cols,
+      rn_cols = rnc
     )
   }
   
@@ -462,11 +482,13 @@ createMethodComparisonSpreadsheet<-function(
   dg1.bioFun = bioSigRNASeq,       # Biological significance filter for dg1
   dg1.fdr = "FDR",                 # Statistic used to filter genes for dg1
   dg1.me = 2,                      # Min. expression for dg1.bioFun
+  dg1.lfc = 1,                     # Min. log 2 fold change for dg1
   dg1.x = 39,                      # row number, corner of dg1 Summary table
   dg1.y = 2,                       # col number, corner of dg1 Summary table
   dg2.bioFun = bioSigRNASeq,       # Biological significance filter for dg2
   dg2.fdr = "FDR",                 # Statistic used to filter genes for dg2
   dg2.me = 2,                      # Min. expression for dg2.bioFun
+  dg2.lfc = 1,                     # Min. log 2 fold change for dg2
   dg2.x = 44,                      # row number, corner of dg2 Summary table
   dg2.y = 2,                       # col number, corner of dg2 Summary table
   vns.x = 50,                      # row number, corner of ven intersect
