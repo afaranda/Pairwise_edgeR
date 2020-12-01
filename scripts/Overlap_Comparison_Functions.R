@@ -130,7 +130,8 @@ subsetTables<-function(
   unlog = T,                # Whether to report absolute or log2 fold changes
   descname = F,             # Use original, or descriptive attribute names
   annot = NULL,             # Optionally provide table (keyed on ID)
-  dropGroup = T             # Drop or keep group label columns
+  dropGroup = T,            # Drop or keep group label columns
+  unit = "Avg"              # Aggregated unit for groupwise abundance
 ){
   # Standardize column headers
   cols<-c(lfc=lfc, pvl=pvl, fdr=fdr, g1=g1, g2=g2, a1=a1, a2=a2)
@@ -184,10 +185,10 @@ subsetTables<-function(
       dg1.g2 = paste(Contrast_1, df$dg1.g2[1], sep="_"),
       dg2.g1 = paste(Contrast_2, df$dg2.g1[1], sep="_"),
       dg2.g2 = paste(Contrast_2, df$dg2.g2[1], sep="_"),
-      dg1.a1 = paste(Contrast_1, df$dg1.g1[1], "Avg", sep="_"),
-      dg1.a2 = paste(Contrast_1, df$dg1.g2[1], "Avg", sep="_"),
-      dg2.a1 = paste(Contrast_2, df$dg2.g1[1], "Avg", sep="_"),
-      dg2.a2 = paste(Contrast_2, df$dg2.g2[1], "Avg", sep="_"),
+      dg1.a1 = paste(Contrast_1, df$dg1.g1[1], unit, sep="_"),
+      dg1.a2 = paste(Contrast_1, df$dg1.g2[1], unit, sep="_"),
+      dg2.a1 = paste(Contrast_2, df$dg2.g1[1], unit, sep="_"),
+      dg2.a2 = paste(Contrast_2, df$dg2.g2[1], unit, sep="_"),
       dg1.lfc = ifelse(
         unlog, paste(Contrast_1, "Fold_Change",sep="_"),
         paste(Contrast_1, lfc,sep="_")
